@@ -2,3 +2,5 @@ numpy==1.26.1
 opencv-python==4.8.1.78
 Pillow==10.1.0
 requests==2.31.0
+pytube==15.0.0
+pytube3==9.6.4

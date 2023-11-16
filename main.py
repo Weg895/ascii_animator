@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import filedialog
 import requests
 import re
+from pytube import YouTube
 
 URL_REGEX = re.compile(
         r'^(?:http|ftp)s?://'
@@ -18,11 +19,13 @@ URL_REGEX = re.compile(
         r'(?::\d+)?'
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
+YT_URL = re.compile(r'^(?:http|ftp)s?://\w{0,3}.?youtube+\.\w{2,3}/watch\?v=[\w-]{11}', re.IGNORECASE)
+
 FRAME_RESULT_FOLDER = "data/vidframes"
 CONVERTED_FRAME_PATH = "data/frames"
 TEMP_IMPORTED_MEDIA = "data/temp"
 
-def convert_video(width, delay, generate, vid_path, asscii_set, is_reversed = True):
+def convert_video(width, delay, generate, media_path, asscii_set, is_reversed = True):
     if generate : 
         if os.path.isdir(FRAME_RESULT_FOLDER) :
             shutil.rmtree(FRAME_RESULT_FOLDER)
@@ -33,7 +36,7 @@ def convert_video(width, delay, generate, vid_path, asscii_set, is_reversed = Tr
         os.mkdir(FRAME_RESULT_FOLDER)
         os.mkdir(CONVERTED_FRAME_PATH)
         
-        vid_spliter(vid_path,FRAME_RESULT_FOLDER)
+        vid_spliter(media_path,FRAME_RESULT_FOLDER)
         ascii_char = getSetAscii(asscii_set)
         
         if is_reversed :
@@ -45,7 +48,7 @@ def convert_video(width, delay, generate, vid_path, asscii_set, is_reversed = Tr
     animator(CONVERTED_FRAME_PATH, delay)
 
 
-def convert_image(width, delay, generate, vid_path,asscii_set, is_reversed = True) :
+def convert_image(width, delay, generate, media_path,asscii_set, is_reversed = True) :
     if generate : 
         if os.path.isdir(FRAME_RESULT_FOLDER) :
             shutil.rmtree(FRAME_RESULT_FOLDER)
@@ -61,10 +64,10 @@ def convert_image(width, delay, generate, vid_path,asscii_set, is_reversed = Tru
             ascii_char.reverse()
         
         print("Converting ...")
-        convert(vid_path, "1", CONVERTED_FRAME_PATH, width, ascii_char)  
+        convert(media_path, "1", CONVERTED_FRAME_PATH, width, ascii_char)  
     animator(CONVERTED_FRAME_PATH, delay)
 
-def convert_gif(width, delay, generate, vid_path,asscii_set, is_reversed = True) :
+def convert_gif(width, delay, generate, media_path,asscii_set, is_reversed = True) :
     if generate : 
         if os.path.isdir(FRAME_RESULT_FOLDER) :
             shutil.rmtree(FRAME_RESULT_FOLDER)
@@ -75,7 +78,7 @@ def convert_gif(width, delay, generate, vid_path,asscii_set, is_reversed = True)
         os.mkdir(FRAME_RESULT_FOLDER)
         os.mkdir(CONVERTED_FRAME_PATH)
         
-        gif_spliter(vid_path, FRAME_RESULT_FOLDER)
+        gif_spliter(media_path, FRAME_RESULT_FOLDER)
         ascii_char = getSetAscii(asscii_set)
         
         if is_reversed :
@@ -111,9 +114,28 @@ def import_data(url):
         
     return file_Type
 
+def import_yt_vid(url):
+    try:
+        yt = YouTube(url)
+        streams = yt.streams.filter(subtype='mp4', resolution='720p')
+        
+        if streams:
+            video = streams.first()
+            print(f"Downloading: {yt.title} ({video.resolution})")
+            video_path = video.download(TEMP_IMPORTED_MEDIA)
+            print(f"Download complete.")
+            
+            return video_path
+        else:
+            print(f"No MP4 streams available for the video.")
+    except Exception as e:
+        print(f"Error: {e}")
+
+    return ""
+
 def args_parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='A converter to make image and video use ascii, do whatever you want with it :), by Weg895')
-    parser.add_argument('-c', '--convert', metavar='vid_path', dest='vid_path', help='the path of the media you want to convert (if not set and the load parameter is not passed, a window will appeard to select a file)', default=None, type=str)
+    parser.add_argument('-c', '--convert', metavar='media_path', dest='media_path', help='the path of the media you want to convert (if not set and the load parameter is not passed, a window will appeard to select a file)', default=None, type=str)
     parser.add_argument('-a', '--ascii', metavar='ascii_set', dest='ascii_set', help='Select the acsii charater set used to convert the image', choices=[1, 2, 3], default=3, type=int)
     parser.add_argument('-w', '--width',  metavar='width', dest='width', help="set the width of the converted media", default=100, type=int)
     parser.add_argument('-d', '--d',  metavar='delay', dest='delay', help="Set the delay of between each redered image only affect animated gif and video", default=0.05, type=float)
@@ -124,29 +146,32 @@ def args_parse() -> argparse.Namespace:
 
 def main():
     args = args_parse()
-    vid_path = args.vid_path
+    media_path = args.media_path
     width = args.width
     delay = args.delay
     generate = not args.load
     asscii_set = args.ascii_set
     is_reversed = args.reversed
     
-    if not vid_path :
-        vid_path = open_file_dialog()
+    if not media_path :
+        media_path = open_file_dialog()
     
     if os.path.isdir(TEMP_IMPORTED_MEDIA) :
         shutil.rmtree(TEMP_IMPORTED_MEDIA)
          
     os.mkdir(TEMP_IMPORTED_MEDIA)
-    if re.match(URL_REGEX, vid_path) is not None :
-        vid_path = f"{TEMP_IMPORTED_MEDIA}/tmp{import_data(vid_path)}"
+    if re.match(URL_REGEX, media_path) is not None and media_path.endswith((".png", ".jpg", ".jpeg", ".mp4", ".gif")) :
+        media_path = f"{TEMP_IMPORTED_MEDIA}/tmp{import_data(media_path)}"
     
-    if vid_path.endswith((".mp4", ".avi")) :
-        convert_video(width, delay, generate, vid_path, asscii_set, is_reversed)
-    elif vid_path.endswith(('.png', '.jpg', '.jpeg')) :
-        convert_image(width, delay, generate, vid_path, asscii_set, is_reversed)
-    elif vid_path.endswith(".gif") :
-        convert_gif(width, delay, generate, vid_path, asscii_set, is_reversed)
+    if re.match(YT_URL, media_path) is not None :
+        media_path = f"{import_yt_vid(media_path)}"
+    
+    if media_path.endswith((".mp4")) :
+        convert_video(width, delay, generate, media_path, asscii_set, is_reversed)
+    elif media_path.endswith((".png", ".jpg", ".jpeg")) :
+        convert_image(width, delay, generate, media_path, asscii_set, is_reversed)
+    elif media_path.endswith(".gif") :
+        convert_gif(width, delay, generate, media_path, asscii_set, is_reversed)
     else :
         print("The selected file is not valid. The accepted extentions are :\n.gif .png .jpg .jpeg .mp4")
         
