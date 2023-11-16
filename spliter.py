@@ -7,6 +7,8 @@ from PIL import Image, ImageSequence
 def vid_spliter(vid_path, result_folder) :
     print(f"Spliting {vid_path}")
     vid_cap = cv2.VideoCapture(vid_path)
+    fps = vid_cap.get(cv2.CAP_PROP_FPS)
+    
     count = 0
     while True:
         success,image = vid_cap.read()
@@ -14,6 +16,8 @@ def vid_spliter(vid_path, result_folder) :
             break
         cv2.imwrite(os.path.join(result_folder,"{:d}.jpg".format(count)), image)
         count += 1 
+        
+    return 1/fps
         
 def gif_spliter(gif_path, result_folder) :
     im = Image.open(gif_path)

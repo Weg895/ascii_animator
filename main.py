@@ -25,7 +25,9 @@ FRAME_RESULT_FOLDER = "data/vidframes"
 CONVERTED_FRAME_PATH = "data/frames"
 TEMP_IMPORTED_MEDIA = "data/temp"
 
-def convert_video(width, delay, generate, media_path, asscii_set, is_reversed = True):
+DEFAULT_DELAY = 0.5
+
+def convert_video(width, delay, generate, media_path, asscii_set, is_reversed = True): 
     if generate : 
         if os.path.isdir(FRAME_RESULT_FOLDER) :
             shutil.rmtree(FRAME_RESULT_FOLDER)
@@ -36,7 +38,7 @@ def convert_video(width, delay, generate, media_path, asscii_set, is_reversed = 
         os.mkdir(FRAME_RESULT_FOLDER)
         os.mkdir(CONVERTED_FRAME_PATH)
         
-        vid_spliter(media_path,FRAME_RESULT_FOLDER)
+        vid_delay = vid_spliter(media_path,FRAME_RESULT_FOLDER)
         ascii_char = getSetAscii(asscii_set)
         
         if is_reversed :
@@ -45,10 +47,13 @@ def convert_video(width, delay, generate, media_path, asscii_set, is_reversed = 
         print("Converting ...")
         for i, filename in enumerate(os.listdir(FRAME_RESULT_FOLDER)):
             convert(f"{FRAME_RESULT_FOLDER}/{filename}", str(i), CONVERTED_FRAME_PATH, width, ascii_char)  
-    animator(CONVERTED_FRAME_PATH, delay)
+    animator(CONVERTED_FRAME_PATH, delay or vid_delay)
 
 
 def convert_image(width, delay, generate, media_path,asscii_set, is_reversed = True) :
+    if delay is None :
+        delay = DEFAULT_DELAY
+        
     if generate : 
         if os.path.isdir(FRAME_RESULT_FOLDER) :
             shutil.rmtree(FRAME_RESULT_FOLDER)
@@ -68,6 +73,9 @@ def convert_image(width, delay, generate, media_path,asscii_set, is_reversed = T
     animator(CONVERTED_FRAME_PATH, delay)
 
 def convert_gif(width, delay, generate, media_path,asscii_set, is_reversed = True) :
+    if delay is None :
+        delay = DEFAULT_DELAY
+        
     if generate : 
         if os.path.isdir(FRAME_RESULT_FOLDER) :
             shutil.rmtree(FRAME_RESULT_FOLDER)
@@ -138,7 +146,7 @@ def args_parse() -> argparse.Namespace:
     parser.add_argument('-c', '--convert', metavar='media_path', dest='media_path', help='the path of the media you want to convert (if not set and the load parameter is not passed, a window will appeard to select a file)', default=None, type=str)
     parser.add_argument('-a', '--ascii', metavar='ascii_set', dest='ascii_set', help='Select the acsii charater set used to convert the image', choices=[1, 2, 3], default=3, type=int)
     parser.add_argument('-w', '--width',  metavar='width', dest='width', help="set the width of the converted media", default=100, type=int)
-    parser.add_argument('-d', '--d',  metavar='delay', dest='delay', help="Set the delay of between each redered image only affect animated gif and video", default=0.05, type=float)
+    parser.add_argument('-d', '--d',  metavar='delay', dest='delay', help="Set the delay of between each redered image only affect animated gif and video. If not given it render at the same fps as the original", default=None, type=float)
     parser.add_argument('-r', '--reversed', dest='reversed', action='store_false', help="If you want to revese the grayscale of the image (white becomes black, etc.)", default=True)
     parser.add_argument('-l', '--load', dest='load', action='store_true', help="Load a previously converted media")
     parser.add_argument('-s', '--cls', dest='enable_cls', action='store_true', help="if the media is a video or animated gif, enable clearing the console after redering the frames (not recommended, it causes a lot of flickering)")
